@@ -1,9 +1,25 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 import uvicorn
+import psycopg2
+import secrets
 
 app = FastAPI()
 active = set()
+
+connection = psycopg2.connect(dbname='EasySaveDB', user='postgres', password='StrongPassword', host='localhost')
+cursor = connection.cursor()
+
+@app.get("/create_user")
+async def create_user(username: str, email: str, password: str):
+    uniqueid = "test." + username
+    accessKey = secrets.token_hex(64)
+
+    cursor.execute("""
+        INSERT INTO users (username, uniqueid, email, accessKey, password)
+        VALUES (%s, %s, %s, %s, %s)
+        """, 
+        (username, uniqueid, email, accessKey, password))
 
 @app.get("/process")
 async def process(q: str):
@@ -24,6 +40,6 @@ async def ws_endpoint(ws: WebSocket):
     except WebSocketDisconnect:
         active.discard(ws)
 
+
 if __name__ == "__main__":
-    # For many concurrent clients, prefer asyncio (this) over threads.
-    uvicorn.run("server:app", host="0.0.0.0", port=8000)
+    #uvicorn.run("server:app", host="0.0.0.0", port=8000)
