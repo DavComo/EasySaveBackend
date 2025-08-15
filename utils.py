@@ -2,9 +2,9 @@ from enum import Enum
 from functools import singledispatch
 from typing import Any
 
-class envs(Enum):
-    test = 1
-    prod = 2
+class envs(str, Enum):
+    test = "test"
+    prod = "prod"
 
     def __str__(self):
         return self.name

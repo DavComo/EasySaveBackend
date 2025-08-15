@@ -1,47 +1,40 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional
 from utils import *
 from user import User
+from dbService import *
 import uvicorn
-import psycopg2
-import secrets
-import atexit
 import asyncio
+import json
 
 app = FastAPI()
 active = set()
 
-connection = psycopg2.connect(dbname='EasySaveDB', user='postgres', password='StrongPassword', host='localhost')
-cursor = connection.cursor()
-
-atexit.register(lambda: connection.close())
-
 
 @app.post("/create_user")
 async def create_user(username: str, email: str, password: str, test:bool = False):
-    env = (envs.test if test else envs.prod)
-    user = User(username, email, password, env)
-
-    cursor.execute("""
-        INSERT INTO users (username, uniqueid, email, accessKey, password)
-        VALUES (%s, %s, %s, %s, %s)
-        """, 
-        (user.username, user.uniqueid, user.email, user.accessKey, user.password))
-
-    connection.commit()
+    createUser(username, email, password, test)
 
 
 @app.get("/get_user")
 async def get_user(
-    username: Optional[str] = Query(None),
-    uniqueid: Optional[str] = Query(None),
-    email: Optional[str] = Query(None),
-    accessKey: Optional[str] = Query(None)
+    username: Optional[str] = None,
+    uniqueid: Optional[str] = None,
+    email: Optional[str] = None,
+    accessKey: Optional[str] = None
 ):
-    # do async work here (db, http calls, etc.)
-    result = q.upper()
-    return JSONResponse({"input": q, "result": result})
+
+    count = sum([bool(username), bool(uniqueid), bool(email), bool(accessKey)])
+    if count > 1:
+        raise RuntimeError("Cannot pass in more than one argument when searching for a user.")
+
+    users = getUsers(username, uniqueid, email, accessKey)
+    if len(users) == 0:
+        return json.dumps({})
+
+    user = users[0].__dict__
+    return json.dumps(user)
 
 
 @app.websocket("/ws")
@@ -59,5 +52,5 @@ async def ws_endpoint(ws: WebSocket):
 
 
 if __name__ == "__main__":
-    asyncio.run(create_user("davidcomor", "david.comor@gmail.com", "12345", test=True))
-    #uvicorn.run("server:app", host="0.0.0.0", port=8000)
+    #asyncio.run(get_user(username="davidcomor"))
+    uvicorn.run("server:app", host="0.0.0.0", port=8000)

@@ -9,10 +9,16 @@ class User:
     accessKey: str
     password: str
 
-    def __init__(self, username, email, password, env=envs.prod):
+    def __init__(self, username, email, password, env=envs.prod, uniqueid=None, accessKey=None):
         self.env = env
         self.username = username
-        self.uniqueid = generateUniqueId(env, username)
+        if uniqueid:
+            self.uniqueid = uniqueid
+        else:
+            self.uniqueid = generateUniqueId(env, username)
         self.email = email
-        self.accessKey = secrets.token_hex(64)
+        if accessKey:
+            self.accessKey = accessKey
+        else:
+            self.accessKey = secrets.token_hex(64)
         self.password = password
