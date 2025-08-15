@@ -1,9 +1,11 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.responses import JSONResponse
+from typing import Optional
+from utils import *
+from user import User
 import uvicorn
 import psycopg2
 import secrets
-from utils import *
 import atexit
 import asyncio
 
@@ -16,25 +18,31 @@ cursor = connection.cursor()
 atexit.register(lambda: connection.close())
 
 
-@app.get("/create_user")
+@app.post("/create_user")
 async def create_user(username: str, email: str, password: str, test:bool = False):
     env = (envs.test if test else envs.prod)
-    uniqueid = generateUniqueId(env, username)
-    accessKey = secrets.token_hex(64)
+    user = User(username, email, password, env)
 
     cursor.execute("""
         INSERT INTO users (username, uniqueid, email, accessKey, password)
         VALUES (%s, %s, %s, %s, %s)
         """, 
-        (username, uniqueid, email, accessKey, password))
+        (user.username, user.uniqueid, user.email, user.accessKey, user.password))
 
     connection.commit()
 
-@app.get("/process")
-async def process(q: str):
+
+@app.get("/get_user")
+async def get_user(
+    username: Optional[str] = Query(None),
+    uniqueid: Optional[str] = Query(None),
+    email: Optional[str] = Query(None),
+    accessKey: Optional[str] = Query(None)
+):
     # do async work here (db, http calls, etc.)
     result = q.upper()
     return JSONResponse({"input": q, "result": result})
+
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
