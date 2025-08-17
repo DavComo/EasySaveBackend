@@ -20,5 +20,5 @@ class User:
         if accessKey:
             self.accessKey = accessKey
         else:
-            self.accessKey = secrets.token_hex(64)
+            self.accessKey = generateAccessKey()
         self.password = password

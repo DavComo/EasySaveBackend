@@ -13,13 +13,34 @@ dictCursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 atexit.register(lambda: connection.close())
 
 
-def createUser(username: str, email: str, password: str, test:bool = False):
+def verifyAccessKey(username: str, accessKey: str) -> str:
+    if (len(accessKey) != 64*2) or (not accessKey.isalnum()):
+        return None
+    
+    cursor.execute("""
+        SELECT accessKey
+        FROM users
+        WHERE (
+            users.username = %s AND
+            users.accessKey = %s
+        );""",
+        (username, accessKey)
+        )
+
+    queryResult = cursor.fetchone()
+
+    if (bool(queryResult)):
+        return queryResult[0]
+    return None
+
+
+def createUser(username: str, email: str, password: str, test:bool = False) -> int:
     env = (envs.test if test else envs.prod)
     user = User(username=username, email=email, password=REDACTED env=env)
 
     cursor.execute("""
         INSERT INTO users (username, uniqueid, email, accessKey, password)
-        VALUES (%s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s);
         """, 
         (user.username, user.uniqueid, user.email, user.accessKey, user.password))
 
@@ -33,7 +54,7 @@ def getUsers(
     uniqueid: Optional[str],
     email: Optional[str],
     accessKey: Optional[str]
-):
+) -> list[User]:
 
     searchStatements = []
     data = []
@@ -67,3 +88,4 @@ def getUsers(
         users.append(user)
 
     return users
+

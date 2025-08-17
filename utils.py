@@ -1,6 +1,7 @@
 from enum import Enum
 from functools import singledispatch
 from typing import Any
+import secrets
 
 class envs(str, Enum):
     test = "test"
@@ -73,4 +74,6 @@ def isUniqueIdValid(id: str) -> bool:
             return False
     
     return True
-    
+
+def generateAccessKey() -> str:
+    return secrets.token_hex(64)
