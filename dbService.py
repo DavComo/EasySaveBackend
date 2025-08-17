@@ -1,5 +1,5 @@
 from typing import Optional
-from utils import *
+import utils
 from user import User
 import psycopg2
 import psycopg2.extras
@@ -35,7 +35,7 @@ def verifyAccessKey(username: str, accessKey: str) -> str:
 
 
 def createUser(username: str, email: str, password: str, test:bool = False) -> int:
-    env = (envs.test if test else envs.prod)
+    env = (utils.envs.test if test else utils.envs.prod)
     user = User(username=username, email=email, password=REDACTED env=env)
 
     cursor.execute("""
@@ -83,7 +83,7 @@ def getUsers(
     users = []
 
     for result in queryResult:
-        userEnv = envs[str(mapUniqueId(result['uniqueid'])['env'])]
+        userEnv = utils.envs[str(utils.mapUniqueId(result['uniqueid'])['env'])]
         user = User(username=result['username'], uniqueid=result['uniqueid'], email=result['email'], accessKey=result['accesskey'], password=REDACTED'password'], env=userEnv)
         users.append(user)
 

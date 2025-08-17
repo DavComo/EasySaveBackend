@@ -22,7 +22,7 @@ async def verify_request_credentials(request: Request, call_next):
         if not accessKey or not username:
             raise HTTPException(status_code=401, detail="Authorization credentials required.")
         if not verifyAccessKey(username, accessKey):
-            raise HTTPException(status_code=401), detail="Authorization credentials invalid."
+            raise HTTPException(status_code=401, detail="Authorization credentials invalid.")
 
     response = await call_next(request)
     return response
