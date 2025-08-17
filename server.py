@@ -1,21 +1,19 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from typing import Optional
 from utils import *
-from user import User
 from dbService import *
 import uvicorn
-import asyncio
+import asyncio # type: ignore
 import json
 
 app = FastAPI()
-active = set()
+active: set[WebSocket] = set()
 
 
 MIDDLEWARE_EXCLUSIONS = ['/login', '/register']
 
 @app.middleware("http")
-async def verify_request_credentials(request: Request, call_next):
+async def verify_request_credentials(request: Request, call_next): # type: ignore
     if request.url.path not in MIDDLEWARE_EXCLUSIONS:
         username = request.headers['RequesterUsername']
         accessKey = request.headers['RequesterAccessKey']
@@ -24,8 +22,8 @@ async def verify_request_credentials(request: Request, call_next):
         if not verifyAccessKey(username, accessKey):
             raise HTTPException(status_code=401, detail="Authorization credentials invalid.")
 
-    response = await call_next(request)
-    return response
+    response = await call_next(request) # type: ignore
+    return response # type: ignore
 
 
 @app.post("/create_user")
@@ -69,5 +67,5 @@ async def ws_endpoint(ws: WebSocket):
 
 
 if __name__ == "__main__":
-    print(type(verifyAccessKey("aavidcomor", "1b4e9929685af5f7d0ed681e067c85b99063c7bc6a8f3dba97d72b542d65bac46fe839d888c04c4fab78310e35c3d01279b4ac4c799ad4bc6fdf195a6e01a424")))
-    #uvicorn.run("server:app", host="0.0.0.0", port=8000)
+    #print(type(verifyAccessKey("aavidcomor", "1b4e9929685af5f7d0ed681e067c85b99063c7bc6a8f3dba97d72b542d65bac46fe839d888c04c4fab78310e35c3d01279b4ac4c799ad4bc6fdf195a6e01a424")))
+    uvicorn.run("server:app", host="0.0.0.0", port=8000)

@@ -12,13 +12,13 @@ class envs(str, Enum):
 
 
 @singledispatch
-def generateUniqueId(arg: Any, *args, **kwargs) -> str:
+def generateUniqueId(arg: Any, *args, **kwargs) -> str: # type: ignore
     raise NotImplementedError(f"Unsupported type: {type(arg)}")
 
 @generateUniqueId.register
-def _(path: list) -> str:
-    if len(path) > 0:
-        id = ".".join(path)
+def _(path: list) -> str: # type: ignore
+    if len(path) > 0: # type: ignore
+        id = ".".join(path) # type: ignore
         if isUniqueIdValid(id):
             return id
         else:
@@ -27,49 +27,45 @@ def _(path: list) -> str:
     raise ValueError("ID Path list cannot be empty.")
 
 @generateUniqueId.register
-def _(env: envs, user: str, *folders) -> str:
-    path = [str(env), user, *folders]
+def _(env: envs, user: str, *folders: list[str]) -> str:
+    path: list[str] = [str(env), user, *folders] # type: ignore
     return generateUniqueId(path)
 
 
-def separateUniqueId(id: str) -> list:
+def separateUniqueId(id: str) -> list[str]:
     if not (isUniqueIdValid(id)):
         raise ValueError("Invalid Unique ID")
     
-    id = id.split(".")
-    id[0] = envs[id[0]]
+    idList = id.split(".")
+    idList[0] = envs[idList[0]]
 
-    return id
+    return idList
 
 
-def mapUniqueId(id: str) -> dict:
-    id = separateUniqueId(id)
+def mapUniqueId(id: str) -> dict[str, str | list[str]]:
+    idList = separateUniqueId(id)
     
-    mapping = {
-        "env" : None,
-        "username" : None,
-        "folders" : []
+    mapping: dict[str, str | list[str]] = {
+        "env" : idList[0],
+        "username" : idList[1],
+        "folders" : idList[2:]
     }
-
-    mapping["env"] = id[0]
-    mapping["username"] = id[1]
-    mapping["folders"] = id[2:]
 
     return mapping
 
 
 def isUniqueIdValid(id: str) -> bool:
-    id = id.split(".")
+    idList = id.split(".")
     
-    if len(id) < 2:
+    if len(idList) < 2:
         return False
     
     try:
-        env = envs[id[0]]
+        envs[idList[0]]
     except KeyError:
         return False
 
-    for directory in id:
+    for directory in idList:
         if not directory.strip():
             return False
     

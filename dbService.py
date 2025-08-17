@@ -4,7 +4,6 @@ from user import User
 import psycopg2
 import psycopg2.extras
 import atexit
-import asyncio
 
 connection = psycopg2.connect(dbname='EasySaveDB', user='postgres', password='StrongPassword', host='localhost')
 cursor = connection.cursor()
@@ -13,7 +12,7 @@ dictCursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 atexit.register(lambda: connection.close())
 
 
-def verifyAccessKey(username: str, accessKey: str) -> str:
+def verifyAccessKey(username: str, accessKey: str) -> str | None:
     if (len(accessKey) != 64*2) or (not accessKey.isalnum()):
         return None
     
@@ -56,8 +55,8 @@ def getUsers(
     accessKey: Optional[str]
 ) -> list[User]:
 
-    searchStatements = []
-    data = []
+    searchStatements: list[str] = []
+    data: list[str] = []
     if type(username) == str:
         searchStatements.append("username = %s")
         data.append(username)
@@ -76,11 +75,11 @@ def getUsers(
     dictCursor.execute(("SELECT * FROM users WHERE " + searchStatement), data)
     queryResult = dictCursor.fetchall()
     if len(queryResult) > 1:
-        raise RuntimeError("Unexpected number of users found: " + len(queryResult))
+        raise RuntimeError("Unexpected number of users found: " + str(len(queryResult)))
     elif len(queryResult) == 0:
-        return None
+        return []
     
-    users = []
+    users: list[User] = []
 
     for result in queryResult:
         userEnv = utils.envs[str(utils.mapUniqueId(result['uniqueid'])['env'])]
