@@ -7,7 +7,7 @@ import atexit
 
 connection = psycopg2.connect(dbname='EasySaveDB', user='postgres', password='StrongPassword', host='localhost')
 cursor = connection.cursor()
-dictCursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+dictCursor: psycopg2.extensions.cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 atexit.register(lambda: connection.close())
 
@@ -73,7 +73,7 @@ def getUsers(
     searchStatement = " AND ".join(searchStatements)
 
     dictCursor.execute(("SELECT * FROM users WHERE " + searchStatement), data)
-    queryResult = dictCursor.fetchall()
+    queryResult: list[tuple[str, str]] = dictCursor.fetchall()
     if len(queryResult) > 1:
         raise RuntimeError("Unexpected number of users found: " + str(len(queryResult)))
     elif len(queryResult) == 0:
@@ -82,8 +82,15 @@ def getUsers(
     users: list[User] = []
 
     for result in queryResult:
-        userEnv = utils.envs[str(utils.uniqueIdToMap(result['uniqueid'])['env'])]
-        user = User(username=result['username'], uniqueid=result['uniqueid'], email=result['email'], accessKey=result['accesskey'], password=REDACTED'password'], env=userEnv)
+        userEnv = utils.envs[str(utils.mapUniqueId(result['uniqueid'])['env'])] # type: ignore
+        user = User(
+            username=result['username'], # type: ignore
+            uniqueid=result['uniqueid'], # type: ignore
+            email=result['email'], # type: ignore
+            accessKey=result['accessKey'], # type: ignore
+            password=REDACTED'password'], # type: ignore
+            env=userEnv
+        )
         users.append(user)
 
     return users
