@@ -17,6 +17,7 @@ def generateUniqueId(arg: Any, *args, **kwargs) -> str: # type: ignore
 
 @generateUniqueId.register
 def _(path: list) -> str: # type: ignore
+    print(path)
     if len(path) > 0: # type: ignore
         id = ".".join(path) # type: ignore
         if isUniqueIdValid(id):
@@ -28,7 +29,7 @@ def _(path: list) -> str: # type: ignore
 
 @generateUniqueId.register
 def _(env: envs, user: str, *folders: list[str]) -> str:
-    path: list[str] = [str(env), user, *folders] # type: ignore
+    path: list[str] = [str(env), user, *folders if len(folders) else None] # type: ignore
     return generateUniqueId(path)
 
 
@@ -42,7 +43,7 @@ def separateUniqueId(id: str) -> list[str]:
     return idList
 
 
-def mapUniqueId(id: str) -> dict[str, str | list[str]]:
+def uniqueIdToMap(id: str) -> dict[str, str | list[str]]:
     idList = separateUniqueId(id)
     
     mapping: dict[str, str | list[str]] = {
@@ -53,6 +54,8 @@ def mapUniqueId(id: str) -> dict[str, str | list[str]]:
 
     return mapping
 
+def mapToUniqueId(map: dict[str, str | list[str]]):
+    return generateUniqueId(map["env"], map["username"], map["folders"])
 
 def isUniqueIdValid(id: str) -> bool:
     idList = id.split(".")

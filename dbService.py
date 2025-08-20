@@ -82,7 +82,7 @@ def getUsers(
     users: list[User] = []
 
     for result in queryResult:
-        userEnv = utils.envs[str(utils.mapUniqueId(result['uniqueid'])['env'])]
+        userEnv = utils.envs[str(utils.uniqueIdToMap(result['uniqueid'])['env'])]
         user = User(username=result['username'], uniqueid=result['uniqueid'], email=result['email'], accessKey=result['accesskey'], password=REDACTED'password'], env=userEnv)
         users.append(user)
 

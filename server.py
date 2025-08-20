@@ -51,6 +51,13 @@ async def get_user(
     del user["password"]
     return json.dumps(user)
 
+@app.patch("/update_user")
+async def update_user(
+    uniqueid: str,
+    newValuesJSON: str
+):
+    return None
+
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
@@ -68,4 +75,7 @@ async def ws_endpoint(ws: WebSocket):
 
 if __name__ == "__main__":
     #print(type(verifyAccessKey("aavidcomor", "1b4e9929685af5f7d0ed681e067c85b99063c7bc6a8f3dba97d72b542d65bac46fe839d888c04c4fab78310e35c3d01279b4ac4c799ad4bc6fdf195a6e01a424")))
-    uvicorn.run("server:app", host="0.0.0.0", port=8000)
+    #uvicorn.run("server:app", host="0.0.0.0", port=8000)
+    uniqueId = "test.davidcomor"
+    hola = utils.uniqueIdToMap(uniqueId)
+    print(utils.mapToUniqueId(hola))

@@ -8,7 +8,7 @@ class User:
     accessKey: str
     password: str
 
-    def __init__(self, username, email, password, env=utils.envs.prod, uniqueid=None, accessKey=None):
+    def __init__(self, username: str, email: str, password: str, env: utils.envs=utils.envs.prod, uniqueid: str | None =None, accessKey: str | None =None):
         self.env = env
         self.username = username
         if uniqueid:
