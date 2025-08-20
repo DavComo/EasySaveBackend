@@ -82,12 +82,12 @@ def getUsers(
     users: list[User] = []
 
     for result in queryResult:
-        userEnv = utils.envs[str(utils.mapUniqueId(result['uniqueid'])['env'])] # type: ignore
+        userEnv = utils.envs[str(utils.uniqueIdToMap(result['uniqueid'])['env'])] # type: ignore
         user = User(
             username=result['username'], # type: ignore
             uniqueid=result['uniqueid'], # type: ignore
             email=result['email'], # type: ignore
-            accessKey=result['accessKey'], # type: ignore
+            accessKey=result['accesskey'], # type: ignore
             password=REDACTED'password'], # type: ignore
             env=userEnv
         )
@@ -95,3 +95,21 @@ def getUsers(
 
     return users
 
+
+def updateUser(
+    uniqueid: str,
+    valuesToUpdate: dict[str, str]
+) -> User:
+    setStatements: list[str] = []
+
+    for key, value in valuesToUpdate.items():
+        setStatements.append(str(key + " = '" + value + "'"))
+
+    setStatement: str = ", ".join(setStatements)
+    
+    cursor.execute(("UPDATE users SET " + setStatement + " WHERE users.uniqueID = %s"), [uniqueid])
+    
+    connection.commit()
+
+    user: User = getUsers(None, uniqueid, None, None)[0]
+    return user

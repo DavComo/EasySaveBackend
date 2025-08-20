@@ -29,7 +29,7 @@ def _(path: list) -> str: # type: ignore
 
 @generateUniqueId.register
 def _(env: envs, user: str, *folders: list[str]) -> str:
-    path: list[str] = [str(env), user, *folders if len(folders) else None] # type: ignore
+    path: list[str] = ([str(env), user, *folders]) if len(folders) > 0 else ([str(env), user]) # type: ignore
     return generateUniqueId(path)
 
 

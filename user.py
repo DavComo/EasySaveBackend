@@ -21,6 +21,9 @@ class User:
         else:
             self.accessKey = utils.generateAccessKey()
         self.password = password
+
+    def __str__(self) -> str:
+        return f"User(env={self.env}, username={self.username}, uniqueid={self.uniqueid}, email={self.email}, accessKey={self.accessKey})"
     
     def getEnv(self) -> utils.envs:
         return self.env
