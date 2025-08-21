@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi.responses import JSONResponse
 from typing import Optional
-from utils import *
-from dbService import *
+import dbService
 import uvicorn
 import asyncio # type: ignore
 import json
@@ -16,21 +16,24 @@ MIDDLEWARE_EXCLUSIONS = ['/login', '/register']
 async def verify_request_credentials(request: Request, call_next): # type: ignore
     if request.url.path not in MIDDLEWARE_EXCLUSIONS:
         if 'RequesterUsername' not in request.headers or 'RequesterAccessKey' not in request.headers:
-            raise HTTPException(status_code=401, detail="Authorization credentials required.")
+            return JSONResponse(status_code=401, content={"detail": "Authorization credentials required."})
         username = request.headers['RequesterUsername']
         accessKey = request.headers['RequesterAccessKey']
         if not accessKey or not username:
-            raise HTTPException(status_code=401, detail="Authorization credentials required.")
-        if not verifyAccessKey(username, accessKey):
-            raise HTTPException(status_code=401, detail="Authorization credentials invalid.")
+            return JSONResponse(status_code=401, content={"detail": "Authorization credentials required."})
+        if not dbService.verifyAccessKey(username, accessKey):
+                        return JSONResponse(status_code=401, content={"detail": "Authorization credentials invalid."})
 
-    response = await call_next(request) # type: ignore
+    try:
+        response = await call_next(request) # type: ignore
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": type(e).__name__ + ": " + e.args[0]})
     return response # type: ignore
 
 
 @app.post("/create_user")
 async def create_user(username: str, email: str, password: str, test:bool = False):
-    createUser(username, email, password, test)
+    dbService.createUser(username, email, password, test)
 
 
 @app.get("/get_user")
@@ -45,7 +48,7 @@ async def get_user(
     if count > 1:
         raise RuntimeError("Cannot pass in more than one argument when searching for a user.")
 
-    users = getUsers(username, uniqueid, email, accessKey)
+    users = dbService.getUsers(username, uniqueid, email, accessKey)
     if len(users) == 0:
         return {} # type: ignore
 
@@ -56,14 +59,69 @@ async def get_user(
 
 @app.patch("/update_user")
 async def update_user(
-    uniqueid: str,
+    request: Request,
     newValuesJSON: str
 ):
-    return updateUser(uniqueid, json.loads(newValuesJSON))
+    username = request.headers["RequesterUsername"]
+    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    try:
+        dbService.updateUser(uniqueid, json.loads(newValuesJSON))
+    except KeyError as e:
+        raise HTTPException(422, e.args[0])
 
 @app.get("/login")
-async def login(username: str, password: str) -> str:
-    return None
+async def login(username: str, password: str):
+    try:
+        accessKey: str | None = dbService.login(username, password)
+    except RuntimeError as e:
+        raise HTTPException(500, e.args[0])
+    
+    if (accessKey):
+        return {"accessKey" : accessKey}
+    else:
+        raise HTTPException(401, "Invalid login details.")
+    
+@app.post("/create_block")
+async def create_block(
+    request: Request,
+    extendedIdentifier: str,
+    value: str
+):
+    username = request.headers["RequesterUsername"]
+    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    fullIdentifier = uniqueid + "." + extendedIdentifier
+    
+    dbService.createBlock(fullIdentifier, value)
+
+@app.get("/get_blocks")
+async def get_blocks(
+    request: Request,
+    extendedIdentifier: str
+):
+    
+    username = request.headers["RequesterUsername"]
+    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    fullIdentifier = uniqueid + "." + extendedIdentifier
+
+    blocks = dbService.getBlocks(fullIdentifier)
+    blocksNormalized: list[dict[str, str]] = []
+    for block in blocks:
+        blocksNormalized.append(block.__dict__)
+    return blocksNormalized
+
+@app.patch("/update_block")
+async def update_block(
+    request: Request,
+    extendedIdentifier: str,
+    value: str
+):
+
+    username = request.headers["RequesterUsername"]
+    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    fullIdentifier = uniqueid + "." + extendedIdentifier
+
+    dbService.updateBlock(fullIdentifier, value)
+
 
 
 @app.websocket("/ws")

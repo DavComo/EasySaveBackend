@@ -1,6 +1,7 @@
 from typing import Optional
 import utils
 from user import User
+from block import Block
 import psycopg2
 import psycopg2.extras
 import atexit
@@ -41,7 +42,7 @@ def createUser(username: str, email: str, password: str, test:bool = False) -> i
         INSERT INTO users (username, uniqueid, email, accessKey, password)
         VALUES (%s, %s, %s, %s, %s);
         """, 
-        (user.username, user.uniqueid, user.email, user.accessKey, user.password))
+        (user.getUsername(), user.getUniqueid(), user.getEmail(), user.getAccessKey(), user.getPassword()))
 
     connection.commit()
 
@@ -95,16 +96,17 @@ def getUsers(
 def updateUser(
     uniqueid: str,
     valuesToUpdate: dict[str, str]
-) -> User:
+):
+    
     allowedValues: set[str] = {"email", "accessKey", "password"}
 
     setStatements: list[str] = []
 
     for key, value in valuesToUpdate.items():
         if key not in allowedValues:
-            raise RuntimeError(f"Invalid key '{key}' in valuesToUpdate. Allowed keys are: {allowedValues}")
+            raise KeyError(f"Invalid key '{key}' in valuesToUpdate. Allowed keys are: {allowedValues}")
         if key == "email" and not utils.validateEmail(value):
-            raise RuntimeError(f"Invalid email format for value: {value}")
+            raise KeyError(f"Invalid email format for value: {value}")
         setStatements.append(str(key + " = '" + value + "'"))
 
     setStatement: str = ", ".join(setStatements)
@@ -113,20 +115,67 @@ def updateUser(
     
     connection.commit()
 
-    user: User = getUsers(None, uniqueid, None, None)[0]
-    return user
-
 
 def login(
     username: str,
     password: str
-) -> str:
+) -> str | None:
+    
     hashedPassword: str = utils.hashPassword(password)
 
     dictCursor.execute(("SELECT * FROM users WHERE username=%s AND password=REDACTED"), [username, hashedPassword])
     queryResult: list[tuple[str, str]] = dictCursor.fetchall()
 
     if len(queryResult) == 1:
-        return queryResult['accessKey'] # type: ignore
+        return queryResult[0]['accesskey'] # type: ignore
     elif len(queryResult) == 0:
-        raise RuntimeError("Weird")
+        return None
+    else:
+        raise RuntimeError("Unusual amount of users found when logging in.")
+
+
+def createBlock(
+    identifier: str,
+    content: str
+) -> int:
+    
+    valueBlock: Block = Block(identifier, content)
+
+    cursor.execute("""
+        INSERT INTO data (identifier, value)
+        VALUES (%s, %s);
+        """, 
+        (valueBlock.getIdentifier(), valueBlock.getValue()))
+
+    connection.commit()
+
+    return 1
+
+
+def getBlocks(
+    identifier: str
+):
+    
+    dictCursor.execute(("SELECT * FROM data WHERE identifier LIKE %s"), [(identifier + "%")])
+    queryResult: list[tuple[str, str]] = dictCursor.fetchall()
+    
+    blocks: list[Block] = []
+
+    for result in queryResult:
+        block = Block(
+            identifier=result['identifier'], # type: ignore
+            value=result['value'] # type: ignore
+        )
+        blocks.append(block)
+
+    return blocks
+
+
+def updateBlock(
+    identifier: str,
+    value: str
+):
+    
+    cursor.execute(("UPDATE data SET value=%s WHERE data.identifier = %s"), [value, identifier])
+    
+    connection.commit()

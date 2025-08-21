@@ -1,11 +1,9 @@
-import utils
-
 class Block:
-    IDENTIFIER: str
+    identifier: str
     value: str
 
     def __init__(self, identifier: str, value:str = ""):
-        self.IDENTIFIER = identifier
+        self.identifier = identifier
         self.value = value
 
     def getValue(self) -> str:
@@ -15,17 +13,17 @@ class Block:
         self.value = value
 
     def getIdentifier(self) -> str:
-        return self.IDENTIFIER
+        return self.identifier
 
     @staticmethod
-    def tupleToBlock(rawBlock: tuple[str, str]) -> Block:
-        return Block(tuple[0], tuple[1])
+    def tupleToBlock(rawBlock: tuple[str, str]) -> "Block":
+        return Block(rawBlock[0], rawBlock[1])
 
     @staticmethod
-    def tupleListToBlocks(rawBlockList: list[tuple[str, str]]) -> list[Block]:
+    def tupleListToBlocks(rawBlockList: list[tuple[str, str]]) -> list["Block"]:
         blocks: list[Block] = []
 
         for rawBlock in rawBlockList:
-            blocks.append(tupleToBlock(rawBlock))
+            blocks.append(Block.tupleToBlock(rawBlock))
         
         return blocks

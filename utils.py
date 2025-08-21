@@ -18,7 +18,6 @@ def generateUniqueId(arg: Any, *args, **kwargs) -> str: # type: ignore
 
 @generateUniqueId.register
 def _(path: list) -> str: # type: ignore
-    print(path)
     if len(path) > 0: # type: ignore
         id = ".".join(path) # type: ignore
         if isUniqueIdValid(id):
