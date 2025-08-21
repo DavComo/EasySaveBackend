@@ -107,6 +107,8 @@ def updateUser(
     for key, value in valuesToUpdate.items():
         if key not in allowedValues:
             raise RuntimeError(f"Invalid key '{key}' in valuesToUpdate. Allowed keys are: {allowedValues}")
+        if key == "email" and not utils.validateEmail(value):
+            raise RuntimeError(f"Invalid email format for value: {value}")
         setStatements.append(str(key + " = '" + value + "'"))
 
     setStatement: str = ", ".join(setStatements)

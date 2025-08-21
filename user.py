@@ -20,7 +20,7 @@ class User:
             self.accessKey = accessKey
         else:
             self.accessKey = utils.generateAccessKey()
-        self.password = password
+        self.password = utils.hashPassword(password)
 
     def __str__(self) -> str:
         return f"User(env={self.env}, username={self.username}, uniqueid={self.uniqueid}, email={self.email}, accessKey={self.accessKey})"

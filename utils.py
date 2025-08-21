@@ -2,6 +2,7 @@ from enum import Enum
 from functools import singledispatch
 from typing import Any
 import secrets
+import hashlib
 
 class envs(str, Enum):
     test = "test"
@@ -76,3 +77,11 @@ def isUniqueIdValid(id: str) -> bool:
 
 def generateAccessKey() -> str:
     return secrets.token_hex(64)
+
+def validateEmail(email: str) -> bool:
+    import re
+    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    return re.match(email_regex, email) is not None
+
+def hashPassword(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()

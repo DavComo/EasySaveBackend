@@ -39,7 +39,7 @@ async def get_user(
     uniqueid: Optional[str] = None,
     email: Optional[str] = None,
     accessKey: Optional[str] = None
-):
+) -> dict[str, str]:
 
     count = sum([bool(username), bool(uniqueid), bool(email), bool(accessKey)])
     if count > 1:
