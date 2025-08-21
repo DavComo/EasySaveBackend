@@ -61,6 +61,10 @@ async def update_user(
 ):
     return updateUser(uniqueid, json.loads(newValuesJSON))
 
+@app.get("/login")
+async def login(username: str, password: str) -> str:
+    return None
+
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):

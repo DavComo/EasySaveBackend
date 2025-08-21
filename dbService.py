@@ -74,10 +74,6 @@ def getUsers(
 
     dictCursor.execute(("SELECT * FROM users WHERE " + searchStatement), data)
     queryResult: list[tuple[str, str]] = dictCursor.fetchall()
-    if len(queryResult) > 1:
-        raise RuntimeError("Unexpected number of users found: " + str(len(queryResult)))
-    elif len(queryResult) == 0:
-        return []
     
     users: list[User] = []
 
@@ -119,3 +115,18 @@ def updateUser(
 
     user: User = getUsers(None, uniqueid, None, None)[0]
     return user
+
+
+def login(
+    username: str,
+    password: str
+) -> str:
+    hashedPassword: str = utils.hashPassword(password)
+
+    dictCursor.execute(("SELECT * FROM users WHERE username=%s AND password=REDACTED"), [username, hashedPassword])
+    queryResult: list[tuple[str, str]] = dictCursor.fetchall()
+
+    if len(queryResult) == 1:
+        return queryResult['accessKey'] # type: ignore
+    elif len(queryResult) == 0:
+        raise RuntimeError("Weird")
