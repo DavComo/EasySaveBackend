@@ -100,9 +100,13 @@ def updateUser(
     uniqueid: str,
     valuesToUpdate: dict[str, str]
 ) -> User:
+    allowedValues: set[str] = {"email", "accessKey", "password"}
+
     setStatements: list[str] = []
 
     for key, value in valuesToUpdate.items():
+        if key not in allowedValues:
+            raise RuntimeError(f"Invalid key '{key}' in valuesToUpdate. Allowed keys are: {allowedValues}")
         setStatements.append(str(key + " = '" + value + "'"))
 
     setStatement: str = ", ".join(setStatements)

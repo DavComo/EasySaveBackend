@@ -15,6 +15,8 @@ MIDDLEWARE_EXCLUSIONS = ['/login', '/register']
 @app.middleware("http")
 async def verify_request_credentials(request: Request, call_next): # type: ignore
     if request.url.path not in MIDDLEWARE_EXCLUSIONS:
+        if 'RequesterUsername' not in request.headers or 'RequesterAccessKey' not in request.headers:
+            raise HTTPException(status_code=401, detail="Authorization credentials required.")
         username = request.headers['RequesterUsername']
         accessKey = request.headers['RequesterAccessKey']
         if not accessKey or not username:
@@ -45,11 +47,11 @@ async def get_user(
 
     users = getUsers(username, uniqueid, email, accessKey)
     if len(users) == 0:
-        return json.dumps({})
+        return {} # type: ignore
 
     user = users[0].__dict__
     del user["password"]
-    return json.dumps(user)
+    return user
 
 
 @app.patch("/update_user")
