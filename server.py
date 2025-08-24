@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import dbService
 import uvicorn
@@ -10,11 +11,25 @@ app = FastAPI()
 active: set[WebSocket] = set()
 
 
-MIDDLEWARE_EXCLUSIONS = ['/login', '/register']
+MIDDLEWARE_EXCLUSIONS = ['/login', '/create_user']
+
+origins = [
+    "http://63.179.18.244:80",
+    "http://63.179.18.244:8000",
+    "http://0.0.0.0:8000"
+           ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.middleware("http")
 async def verify_request_credentials(request: Request, call_next): # type: ignore
-    if request.url.path not in MIDDLEWARE_EXCLUSIONS:
+    if request.url.path not in MIDDLEWARE_EXCLUSIONS and request.method != "OPTIONS":
         if 'RequesterUsername' not in request.headers or 'RequesterAccessKey' not in request.headers:
             return JSONResponse(status_code=401, content={"detail": "Authorization credentials required."})
         username = request.headers['RequesterUsername']
@@ -54,6 +69,7 @@ async def get_user(
 
     user = users[0].__dict__
     del user["password"]
+    del user["accessKey"]
     return user
 
 
@@ -71,6 +87,7 @@ async def update_user(
 
 @app.get("/login")
 async def login(username: str, password: str):
+    print(username + ", " + password)
     try:
         accessKey: str | None = dbService.login(username, password)
     except RuntimeError as e:
