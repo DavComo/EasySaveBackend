@@ -179,3 +179,10 @@ def updateBlock(
     cursor.execute(("UPDATE data SET value=%s WHERE data.identifier = %s"), [value, identifier])
     
     connection.commit()
+
+def deleteBlock(
+    identifier: str
+):
+    cursor.execute(("DELETE FROM data WHERE data.identifier = %s"), [identifier])
+
+    connection.commit()

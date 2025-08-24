@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import FastAPI, WebSocket, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
@@ -139,20 +139,17 @@ async def update_block(
 
     dbService.updateBlock(fullIdentifier, value)
 
+@app.post("/delete_block")
+async def delete_block(
+    request: Request,
+    extendedIdentifier: str,
+):
 
+    username = request.headers["RequesterUsername"]
+    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    fullIdentifier = uniqueid + "." + extendedIdentifier
 
-@app.websocket("/ws")
-async def ws_endpoint(ws: WebSocket):
-    await ws.accept()
-    active.add(ws)
-    try:
-        while True:
-            msg = await ws.receive_text()     # receive from a client
-            # echo/process and broadcast to everyone:
-            for peer in list(active):
-                await peer.send_text(f"got: {msg}")
-    except WebSocketDisconnect:
-        active.discard(ws)
+    dbService.deleteBlock(fullIdentifier)
 
 
 if __name__ == "__main__":
