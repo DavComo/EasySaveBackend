@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "FastAPI (fastapi dev)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fastapi",
+      "args": [
+        "dev",
+        "server.py"
+      ],
+      "jinja": true,
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
