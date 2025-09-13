@@ -2,6 +2,7 @@ from typing import Optional, Callable, TypeVar, Any
 from user import User
 from block import Block
 from functools import wraps
+from customExceptions import *
 import psycopg2
 import psycopg2.extras
 import atexit
@@ -74,7 +75,11 @@ def createUser(username: str, email: str, password: str, test:bool = False) -> i
     env = (utils.envs.test if test else utils.envs.prod)
     user = User(username=username, email=email, password=REDACTED env=env)
 
-    if not getUsers(username, None, None, None):
+    if not utils.validateEmail(email):
+        raise InvalidEmail("Invalid email format.")
+    elif getUsers(username, None, None, None):
+        raise NonuniqueUsername(f"User '{username}' already exists.")
+    else:
         serviceInstance.modify_data("""
             INSERT INTO users (username, uniqueid, email, accessKey, password)
             VALUES (%s, %s, %s, %s, %s);
@@ -82,8 +87,6 @@ def createUser(username: str, email: str, password: str, test:bool = False) -> i
             [user.getUsername(), user.getUniqueid(), user.getEmail(), user.getAccessKey(), user.getPassword()])
 
         return 1
-    else:
-        raise RuntimeError(f"User '{username}' already exists.")
 
 
 def getUsers(
@@ -155,12 +158,11 @@ def login(
     password: str
 ) -> str | None:
     
-    hashedPassword: str = utils.hashPassword(password)
-
-    queryResult = serviceInstance.query_dict_data(("SELECT * FROM users WHERE username=%s AND password=REDACTED"), [username, hashedPassword])
+    queryResult = serviceInstance.query_dict_data(("SELECT * FROM users WHERE username=%s"), [username])
 
     if len(queryResult) == 1:
-        return queryResult[0]['accesskey'] # type: ignore
+        if utils.verifyHash(queryResult[0]["password"], password): # type: ignore
+            return queryResult[0]['accesskey'] # type: ignore
     elif len(queryResult) == 0:
         return None
     else:

@@ -2,7 +2,7 @@ from enum import Enum
 from functools import singledispatch
 from typing import Any
 import secrets
-import hashlib
+from argon2 import PasswordHasher
 
 class envs(str, Enum):
     test = "test"
@@ -83,4 +83,7 @@ def validateEmail(email: str) -> bool:
     return re.match(email_regex, email) is not None
 
 def hashPassword(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    return PasswordHasher().hash(password)
+
+def verifyHash(hashedPassword: str, rawPassword: str) -> bool:
+    return PasswordHasher().verify(hashedPassword, rawPassword)

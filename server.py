@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from api_schemas import *
 from typing import Annotated
+from customExceptions import *
 import dbService
 import json
 
@@ -74,8 +75,10 @@ async def create_user( request: Annotated[CreateUserRequest, Query()] ):
     try:
         dbService.createUser(request.username, request.email, request.password, request.test)
         return None
-    except RuntimeError as e:
+    except NonuniqueUsername as e:
         return JSONResponse(status_code=409, content={"detail": str(e)})
+    except InvalidEmail as e:
+        return JSONResponse(status_code=422, content={"detail": str(e)})
 
 
 @app.get("/get_user", response_model=GetUserResponse)
