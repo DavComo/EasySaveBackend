@@ -161,8 +161,11 @@ def login(
     queryResult = serviceInstance.query_dict_data(("SELECT * FROM users WHERE username=%s"), [username])
 
     if len(queryResult) == 1:
-        if utils.verifyHash(queryResult[0]["password"], password): # type: ignore
-            return queryResult[0]['accesskey'] # type: ignore
+        try:
+            if utils.verifyHash(queryResult[0]["password"], password): # type: ignore
+                return queryResult[0]['accesskey'] # type: ignore
+        except:
+            return None
     elif len(queryResult) == 0:
         return None
     else:
