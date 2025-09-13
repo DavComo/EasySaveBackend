@@ -4,3 +4,5 @@ myenv
 public_key.pem
 *.pem
 .env
+paths_to_remove.txt
+replacements.txt

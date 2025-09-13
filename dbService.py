@@ -74,7 +74,7 @@ def verifyAccessKey(username: str, accessKey: str) -> str | None:
 
 def createUser(username: str, email: str, password: str, test:bool = False) -> int:
     env = (utils.envs.test if test else utils.envs.prod)
-    user = User(username=username, email=email, password=REDACTED env=env)
+    user = User(username=username, email=email, password=password, env=env)
 
     if not utils.validateEmail(email):
         raise InvalidEmail("Invalid email format.")
@@ -125,7 +125,7 @@ def getUsers(
             uniqueid=result['uniqueid'], # type: ignore
             email=result['email'], # type: ignore
             accessKey=result['accesskey'], # type: ignore
-            password=REDACTED'password'], # type: ignore
+            password=result['password'], # type: ignore
             env=userEnv
         )
         users.append(user)
