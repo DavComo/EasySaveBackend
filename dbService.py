@@ -1,36 +1,72 @@
-from typing import Optional
-import utils
+from typing import Optional, Callable, TypeVar, Any
 from user import User
 from block import Block
+from functools import wraps
 import psycopg2
 import psycopg2.extras
 import atexit
+import utils
 
-connection = psycopg2.connect(dbname='EasySaveDB', user='postgres', password='StrongPassword', host='localhost')
-cursor = connection.cursor()
-dictCursor: psycopg2.extensions.cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-atexit.register(lambda: connection.close())
+
+
+class DBService:
+    def __init__(self, dsn: str):
+        self.conn = psycopg2.connect(dsn)
+        self.cur = self.conn.cursor()
+        self.dict_cur: psycopg2.extensions.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+
+    F = TypeVar("F", bound=Callable[..., Any])
+
+    def rollback_on_fail(func: F) -> F: # type: ignore
+        @wraps(func)
+        def wrapper(self, *args, **kwargs): # type: ignore
+            try:
+                return func(self, *args, **kwargs)
+            except psycopg2.errors.InFailedSqlTransaction:
+                self.conn.rollback() # type: ignore
+                raise
+        return wrapper  # type: ignore
+    
+
+    @rollback_on_fail
+    def modify_data(self, sql: str, params: list[str]):
+        self.cur.execute(sql, params)
+        self.conn.commit()
+    
+    @rollback_on_fail
+    def query_data(self, sql: str, params: list[str]):
+        self.cur.execute(sql, params)
+        return self.cur.fetchall()
+    
+    @rollback_on_fail
+    def query_dict_data(self, sql: str, params: list[str]):
+        self.dict_cur.execute(sql, params)
+        return self.dict_cur.fetchall()
+
+
+serviceInstance = DBService("dbname=EasySaveDB user=postgres password=REDACTED host=localhost")
+atexit.register(lambda: serviceInstance.conn.close())
+
 
 
 def verifyAccessKey(username: str, accessKey: str) -> str | None:
     if (len(accessKey) != 64*2) or (not accessKey.isalnum()):
         return None
     
-    cursor.execute("""
+    queryResult = serviceInstance.query_data("""
         SELECT accessKey
         FROM users
         WHERE (
             users.username = %s AND
             users.accessKey = %s
         );""",
-        (username, accessKey)
+        [username, accessKey]
         )
 
-    queryResult = cursor.fetchone()
-
     if (bool(queryResult)):
-        return queryResult[0]
+        return queryResult[0][0]
     return None
 
 
@@ -38,13 +74,11 @@ def createUser(username: str, email: str, password: str, test:bool = False) -> i
     env = (utils.envs.test if test else utils.envs.prod)
     user = User(username=username, email=email, password=REDACTED env=env)
 
-    cursor.execute("""
+    serviceInstance.modify_data("""
         INSERT INTO users (username, uniqueid, email, accessKey, password)
         VALUES (%s, %s, %s, %s, %s);
         """, 
-        (user.getUsername(), user.getUniqueid(), user.getEmail(), user.getAccessKey(), user.getPassword()))
-
-    connection.commit()
+        [user.getUsername(), user.getUniqueid(), user.getEmail(), user.getAccessKey(), user.getPassword()])
 
     return 1
 
@@ -73,8 +107,7 @@ def getUsers(
 
     searchStatement = " AND ".join(searchStatements)
 
-    dictCursor.execute(("SELECT * FROM users WHERE " + searchStatement), data)
-    queryResult: list[tuple[str, str]] = dictCursor.fetchall()
+    queryResult = serviceInstance.query_dict_data(("SELECT * FROM users WHERE " + searchStatement), data)
     
     users: list[User] = []
 
@@ -111,9 +144,7 @@ def updateUser(
 
     setStatement: str = ", ".join(setStatements)
     
-    cursor.execute(("UPDATE users SET " + setStatement + " WHERE users.uniqueID = %s"), [uniqueid])
-    
-    connection.commit()
+    serviceInstance.modify_data(("UPDATE users SET " + setStatement + " WHERE users.uniqueID = %s"), [uniqueid])
 
 
 def login(
@@ -123,8 +154,7 @@ def login(
     
     hashedPassword: str = utils.hashPassword(password)
 
-    dictCursor.execute(("SELECT * FROM users WHERE username=%s AND password=REDACTED"), [username, hashedPassword])
-    queryResult: list[tuple[str, str]] = dictCursor.fetchall()
+    queryResult = serviceInstance.query_dict_data(("SELECT * FROM users WHERE username=%s AND password=REDACTED"), [username, hashedPassword])
 
     if len(queryResult) == 1:
         return queryResult[0]['accesskey'] # type: ignore
@@ -141,13 +171,11 @@ def createBlock(
     
     valueBlock: Block = Block(identifier, content)
 
-    cursor.execute("""
+    serviceInstance.modify_data("""
         INSERT INTO data (identifier, value)
         VALUES (%s, %s);
         """, 
-        (valueBlock.getIdentifier(), valueBlock.getValue()))
-
-    connection.commit()
+        [valueBlock.getIdentifier(), valueBlock.getValue()])
 
     return 1
 
@@ -156,8 +184,7 @@ def getBlocks(
     identifier: str
 ):
     
-    dictCursor.execute(("SELECT * FROM data WHERE identifier LIKE %s"), [(identifier + "%")])
-    queryResult: list[tuple[str, str]] = dictCursor.fetchall()
+    queryResult = serviceInstance.query_dict_data(("SELECT * FROM data WHERE identifier LIKE %s"), [(identifier + "%")])
     
     blocks: list[Block] = []
 
@@ -176,13 +203,9 @@ def updateBlock(
     value: str
 ):
     
-    cursor.execute(("UPDATE data SET value=%s WHERE data.identifier = %s"), [value, identifier])
-    
-    connection.commit()
+    serviceInstance.modify_data(("UPDATE data SET value=%s WHERE data.identifier = %s"), [value, identifier])
 
 def deleteBlock(
     identifier: str
 ):
-    cursor.execute(("DELETE FROM data WHERE data.identifier = %s"), [identifier])
-
-    connection.commit()
+    serviceInstance.modify_data(("DELETE FROM data WHERE data.identifier = %s"), [identifier])
