@@ -70,9 +70,12 @@ async def verify_request_credentials(request: Request, call_next): # type: ignor
 
 
 @app.post("/create_user", status_code=status.HTTP_204_NO_CONTENT)
-async def create_user( request: Annotated[CreateUserRequest, Query()] ) -> None:
-    dbService.createUser(request.username, request.email, request.password, request.test)
-    return None
+async def create_user( request: Annotated[CreateUserRequest, Query()] ):
+    try:
+        dbService.createUser(request.username, request.email, request.password, request.test)
+        return None
+    except RuntimeError as e:
+        return JSONResponse(status_code=409, content={"detail": str(e)})
 
 
 @app.get("/get_user", response_model=GetUserResponse)

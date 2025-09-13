@@ -74,13 +74,16 @@ def createUser(username: str, email: str, password: str, test:bool = False) -> i
     env = (utils.envs.test if test else utils.envs.prod)
     user = User(username=username, email=email, password=REDACTED env=env)
 
-    serviceInstance.modify_data("""
-        INSERT INTO users (username, uniqueid, email, accessKey, password)
-        VALUES (%s, %s, %s, %s, %s);
-        """, 
-        [user.getUsername(), user.getUniqueid(), user.getEmail(), user.getAccessKey(), user.getPassword()])
+    if not getUsers(username, None, None, None):
+        serviceInstance.modify_data("""
+            INSERT INTO users (username, uniqueid, email, accessKey, password)
+            VALUES (%s, %s, %s, %s, %s);
+            """, 
+            [user.getUsername(), user.getUniqueid(), user.getEmail(), user.getAccessKey(), user.getPassword()])
 
-    return 1
+        return 1
+    else:
+        raise RuntimeError(f"User '{username}' already exists.")
 
 
 def getUsers(
