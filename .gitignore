@@ -1,2 +1,6 @@
 __pycache__
-env
+.vscode
+myenv
+public_key.pem
+*.pem
+.env

@@ -7,6 +7,7 @@ import psycopg2
 import psycopg2.extras
 import atexit
 import utils
+import os
 
 
 
@@ -46,8 +47,8 @@ class DBService:
         self.dict_cur.execute(sql, params)
         return self.dict_cur.fetchall()
 
-
-serviceInstance = DBService("dbname=EasySaveDB user=postgres password=REDACTED host=localhost")
+dsn = os.getenv("DATABASE_DSN")
+serviceInstance = DBService(dsn) # type: ignore
 atexit.register(lambda: serviceInstance.conn.close())
 
 
