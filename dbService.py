@@ -99,18 +99,11 @@ def getUsers(
 
     searchStatements: list[str] = []
     data: list[str] = []
-    if type(username) == str:
-        searchStatements.append("username = %s")
-        data.append(username)
-    if type(uniqueid) == str:
-        searchStatements.append("uniqueid = %s")
-        data.append(uniqueid)
-    if type(email) == str:
-        searchStatements.append("email = %s")
-        data.append(email)
-    if type(accessKey) == str:
-        searchStatements.append("accessKey = %s")
-        data.append(accessKey)
+
+    for key, value in {**locals()}.items():
+        if (type(value) == str):
+            searchStatements.append(f"{str(key)} = %s")
+            data.append(value)
 
     searchStatement = " AND ".join(searchStatements)
 
