@@ -50,6 +50,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+dbServiceInstance = dbService.DBService()
+
 @app.middleware("http")
 async def verify_request_credentials(request: Request, call_next): # type: ignore
     if request.url.path not in MIDDLEWARE_EXCLUSIONS and request.method != "OPTIONS":
@@ -59,7 +61,7 @@ async def verify_request_credentials(request: Request, call_next): # type: ignor
         accessKey = request.headers['RequesterAccessKey']
         if not accessKey or not username:
             return JSONResponse(status_code=401, content={"detail": "Authorization credentials required."})
-        if not dbService.verifyAccessKey(username, accessKey):
+        if not dbServiceInstance.verifyAccessKey(username, accessKey):
                         return JSONResponse(status_code=401, content={"detail": "Authorization credentials invalid."})
 
     try:
@@ -73,7 +75,7 @@ async def verify_request_credentials(request: Request, call_next): # type: ignor
 @app.post("/create_user", status_code=status.HTTP_204_NO_CONTENT)
 async def create_user( request: Annotated[CreateUserRequest, Query()] ):
     try:
-        dbService.createUser(request.username, request.email, request.password, request.test)
+        dbServiceInstance.createUser(request.username, request.email, request.password, request.test)
         return None
     except NonuniqueUsername as e:
         return JSONResponse(status_code=409, content={"detail": str(e)})
@@ -88,7 +90,7 @@ async def get_user( request: Annotated[GetUserRequest, Query()] ):
     if count < 1:
         raise RuntimeError("Must pass in at least ONE search parameter.")
 
-    users = dbService.getUsers(request.username, request.uniqueid, request.email, request.accessKey)
+    users = dbServiceInstance.getUsers(request.username, request.uniqueid, request.email, request.accessKey)
     if len(users) == 0:
         return None
 
@@ -101,9 +103,9 @@ async def get_user( request: Annotated[GetUserRequest, Query()] ):
 @app.patch("/update_user", status_code=status.HTTP_204_NO_CONTENT)
 async def update_user( request: Request, userRequest: Annotated[UpdateUserRequest, Query()] ):
     username = request.headers["RequesterUsername"]
-    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    uniqueid: str = dbServiceInstance.getUsers(username, None, None, None)[0].getUniqueid()
     try:
-        dbService.updateUser(uniqueid, json.loads(userRequest.newValuesJSON))
+        dbServiceInstance.updateUser(uniqueid, json.loads(userRequest.newValuesJSON))
     except KeyError as e:
         raise HTTPException(422, e.args[0])
 
@@ -112,7 +114,7 @@ async def update_user( request: Request, userRequest: Annotated[UpdateUserReques
 async def login( request: Annotated[LoginRequest, Query()] ):
     print(request.username + ", " + request.password)
     try:
-        accessKey: str | None = dbService.login(request.username, request.password)
+        accessKey: str | None = dbServiceInstance.login(request.username, request.password)
     except RuntimeError as e:
         raise HTTPException(500, e.args[0])
     
@@ -125,20 +127,20 @@ async def login( request: Annotated[LoginRequest, Query()] ):
 @app.post("/create_block", status_code=status.HTTP_204_NO_CONTENT)
 async def create_block( request: Request, userRequest: Annotated[CreateBlockRequest, Query()] ):
     username = request.headers["RequesterUsername"]
-    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    uniqueid: str = dbServiceInstance.getUsers(username, None, None, None)[0].getUniqueid()
     fullIdentifier = uniqueid + "." + userRequest.extendedIdentifier
     
-    dbService.createBlock(fullIdentifier, userRequest.value)
+    dbServiceInstance.createBlock(fullIdentifier, userRequest.value)
 
 
 @app.get("/get_blocks", response_model=GetBlocksResponse)
 async def get_blocks( request: Request, userRequest: Annotated[GetBlocksRequest, Query()] ):
     
     username = request.headers["RequesterUsername"]
-    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    uniqueid: str = dbServiceInstance.getUsers(username, None, None, None)[0].getUniqueid()
     fullIdentifier = uniqueid + "." + userRequest.extendedIdentifier
 
-    blocks = dbService.getBlocks(fullIdentifier)
+    blocks = dbServiceInstance.getBlocks(fullIdentifier)
     blocksNormalized: list[dict[str, str]] = []
     for block in blocks:
         blocksNormalized.append(block.__dict__)
@@ -149,22 +151,17 @@ async def get_blocks( request: Request, userRequest: Annotated[GetBlocksRequest,
 async def update_block( request: Request, userRequest: Annotated[UpdateBlockRequest, Query()] ):
 
     username = request.headers["RequesterUsername"]
-    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    uniqueid: str = dbServiceInstance.getUsers(username, None, None, None)[0].getUniqueid()
     fullIdentifier = uniqueid + "." + userRequest.extendedIdentifier
 
-    dbService.updateBlock(fullIdentifier, userRequest.value)
+    dbServiceInstance.updateBlock(fullIdentifier, userRequest.value)
 
 
 @app.post("/delete_block", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_block( request: Request, userRequest: Annotated[DeleteBlockRequest, Query()] ):
 
     username = request.headers["RequesterUsername"]
-    uniqueid: str = dbService.getUsers(username, None, None, None)[0].getUniqueid()
+    uniqueid: str = dbServiceInstance.getUsers(username, None, None, None)[0].getUniqueid()
     fullIdentifier = uniqueid + "." + userRequest.extendedIdentifier
 
-    dbService.deleteBlock(fullIdentifier)
-
-
-#if __name__ == "__main__":
-    #print(type(verifyAccessKey("aavidcomor", "1b4e9929685af5f7d0ed681e067c85b99063c7bc6a8f3dba97d72b542d65bac46fe839d888c04c4fab78310e35c3d01279b4ac4c799ad4bc6fdf195a6e01a424")))
-    #uvicorn.run("server:app", host="0.0.0.0", port=8000)
+    dbServiceInstance.deleteBlock(fullIdentifier)
