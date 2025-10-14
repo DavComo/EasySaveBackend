@@ -6,3 +6,6 @@ public_key.pem
 .env
 paths_to_remove.txt
 replacements.txt
+*.puml
+flowcharts
+*_pseudocode*

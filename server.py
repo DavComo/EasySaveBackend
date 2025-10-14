@@ -2,11 +2,23 @@ from fastapi import FastAPI, WebSocket, HTTPException, Request, Query, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from api_schemas import *
 from typing import Annotated
-from customExceptions import *
-import dbService
+from customExceptions import NonuniqueUsername, InvalidEmail
+from dbService import DBService
 import json
+from api_schemas import (
+    CreateUserRequest,
+    GetUserRequest,
+    GetUserResponse,
+    UpdateUserRequest,
+    LoginRequest,
+    LoginResponse,
+    CreateBlockRequest,
+    GetBlocksRequest,
+    GetBlocksResponse,
+    UpdateBlockRequest,
+    DeleteBlockRequest
+)
 
 
 app = FastAPI(root_path="/api")
@@ -50,7 +62,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-dbServiceInstance = dbService.DBService()
+dbServiceInstance = DBService()
 
 @app.middleware("http")
 async def verify_request_credentials(request: Request, call_next): # type: ignore
