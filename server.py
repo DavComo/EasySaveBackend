@@ -107,8 +107,8 @@ async def verify_request_credentials(request: Request, call_next): # type: ignor
     Excluded paths (no auth required):
         - /login
         - /create_user
-        - /docs
-        - /openapi.json
+        - /docs (FastAPI Built-in; for easy access to endpoint documentation)
+        - /openapi.json (FastAPI Built-in; for OpenAPI specs in json format)
     """
     if request.url.path not in MIDDLEWARE_EXCLUSIONS and request.method != "OPTIONS":
         if 'RequesterUsername' not in request.headers or 'RequesterAccessKey' not in request.headers:
